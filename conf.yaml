@@ -1,0 +1,6 @@
+---
+version: 1
+threads: 2
+pid_file: /tmp/lr_proxy.pid
+error_log: /tmp/lr_proxy_err.log
+upgrade_sock: /tmp/load_balancer.sock
