@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use pingora::{prelude::*, upstreams};
+use pingora::prelude::*;
 use std::sync::Arc;
 
 pub struct LB(Arc<LoadBalancer<RoundRobin>>);
@@ -34,7 +34,7 @@ impl ProxyHttp for LB {
 }
 
 fn main() {
-    let mut my_server = Server::new(None).unwrap();
+    let mut my_server = Server::new(Some(Opt::parse_args())).unwrap();
     my_server.bootstrap();
 
     let mut upstreams =
