@@ -1,6 +1,7 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use pingora::prelude::*;
-use std::sync::Arc;
 
 pub struct LB(Arc<LoadBalancer<RoundRobin>>);
 
@@ -12,14 +13,15 @@ impl ProxyHttp for LB {
         ()
     }
 
-    async fn upstream_peer(&self, _session: &mut Session, _ctx: &mut Self::CTX) -> Result<Box<HttpPeer>> {
+    async fn upstream_peer(
+        &self,
+        _session: &mut Session,
+        _ctx: &mut Self::CTX,
+    ) -> Result<Box<HttpPeer>> {
         let upstream = self.0.select(b"", 256).unwrap();
-
-        println!("upstream peer is: {upstream:?}");
-
-        // Set SNI to one.one.one.one
-        let peer = Box::new(HttpPeer::new(upstream, true, "one.one.one.one".to_string()));
-        Ok(peer)
+        println!("Upstream: {upstream:?}");
+        let peer = HttpPeer::new(upstream, true, "one.one.one.one".to_string());
+        Ok(Box::new(peer))
     }
 
     async fn upstream_request_filter(
@@ -28,7 +30,9 @@ impl ProxyHttp for LB {
         upstream_request: &mut RequestHeader,
         _ctx: &mut Self::CTX,
     ) -> Result<()> {
-        upstream_request.insert_header("Host", "one.one.one.one").unwrap();
+        upstream_request
+            .insert_header("Host", "one.one.one.one")
+            .unwrap();
         Ok(())
     }
 }
@@ -50,7 +54,6 @@ fn main() {
     let mut lb = http_proxy_service(&my_server.configuration, LB(upstreams));
     lb.add_tcp("0.0.0.0:6188");
 
-    my_server.add_service(background);
-    my_server.add_service(lb);
+    my_server.add_services(vec![Box::new(background), Box::new(lb)]);
     my_server.run_forever();
 }
